@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <!--读取属性文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!--配制连接工厂-->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               virtual-host="${rabbitmq.virtual-host}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"/>
+
+    <!--创建rabbit admin : 底层创建一个类的Bean RabbitAdmin,用来管理交换机、队列及其绑定-->
+    <rabbit:admin connection-factory="connectionFactory" />
+
+    <!--定义RabbitTemplate Bean-->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+
+    <!--1. 简单模式: simple -->
+    <rabbit:queue id="simple-queue" name="simple-queue" auto-declare="true"
+                  auto-delete="false" exclusive="false" durable="true"/>
+
+    <!--2. 广播模式： fanout-->
+
+
+    <!--3. 通配模式：topics-->
+
+
+</beans>
