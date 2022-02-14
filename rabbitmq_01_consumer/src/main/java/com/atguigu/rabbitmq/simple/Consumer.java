@@ -34,7 +34,7 @@ public class Consumer {
                 System.out.println("consumerTag = " + consumerTag);
                 System.out.println("envelope = " + envelope);
                 System.out.println("properties = " + properties);
-                System.out.println("body = " + Arrays.toString(body));
+                System.out.println("body = " + new String(body));
                 System.out.println("================================");
             }
         };
