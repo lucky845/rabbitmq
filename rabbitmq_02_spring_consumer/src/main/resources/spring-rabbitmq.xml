@@ -17,39 +17,32 @@
                                password="${rabbitmq.password}"/>
 
     <!--创建rabbit admin : 底层创建一个类的Bean RabbitAdmin,用来管理交换机、队列及其绑定-->
-    <rabbit:admin connection-factory="connectionFactory" />
+    <rabbit:admin connection-factory="connectionFactory"/>
 
     <!--定义RabbitTemplate Bean-->
     <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
 
     <!--1. 简单模式: simple -->
-    <rabbit:queue id="simple-queue" name="simple-queue" auto-declare="true"
-                  auto-delete="false" exclusive="false" durable="true"/>
+    <bean id="simpleListener" class="com.atguigu.rabbitmq.listener.SimpleListener"/>
 
     <!--2. 广播模式： fanout-->
-    <!--定义两个队列-->
-    <rabbit:queue id="fanout-queue1" name="fanout-queue1" auto-declare="true"/>
-    <rabbit:queue id="fanout-queue2" name="fanout-queue2" auto-declare="true"/>
-    <!--定义一个交换机并绑定两个队列-->
-    <rabbit:fanout-exchange name="fanout-exchange" auto-declare="true">
-        <rabbit:bindings>
-            <rabbit:binding queue="fanout-queue1"/>
-            <rabbit:binding queue="fanout-queue2"/>
-        </rabbit:bindings>
-    </rabbit:fanout-exchange>
+    <bean id="fanout1Listener" class="com.atguigu.rabbitmq.listener.Fanout1Listener"/>
+    <bean id="fanout2Listener" class="com.atguigu.rabbitmq.listener.Fanout2Listener"/>
 
     <!--3. 通配模式：topics-->
-    <!--定义两个队列-->
-    <rabbit:queue id="topic-queue1" name="topic-queue1" auto-declare="true"/>
-    <rabbit:queue id="topic-queue2" name="topic-queue2" auto-declare="true"/>
-    <!--定义一个交换机并绑定两个队列-->
-    <rabbit:topic-exchange name="topic-exchange" auto-declare="true">
-        <rabbit:bindings>
-            <rabbit:binding pattern="#.error" queue="topic-queue1"/>
-            <rabbit:binding pattern="order.*" queue="topic-queue2"/>
-            <rabbit:binding pattern="info.#" queue="topic-queue2"/>
-        </rabbit:bindings>
-    </rabbit:topic-exchange>
+    <bean id="topic1Listener" class="com.atguigu.rabbitmq.listener.Topic1Listener"/>
+    <bean id="topic2Listener" class="com.atguigu.rabbitmq.listener.Topic2Listener"/>
 
+    <!--配制监听器Listener容器-->
+    <rabbit:listener-container connection-factory="connectionFactory" auto-declare="true">
+        <!--简单模式监听器-->
+        <rabbit:listener ref="simpleListener" queue-names="simple-queue"/>
+        <!--广播模式监听器-->
+        <rabbit:listener ref="fanout1Listener" queue-names="fanout-queue1"/>
+        <rabbit:listener ref="fanout2Listener" queue-names="fanout-queue2"/>
+        <!--通配模式监听器-->
+        <rabbit:listener ref="topic1Listener" queue-names="topic-queue1"/>
+        <rabbit:listener ref="topic2Listener" queue-names="topic-queue2"/>
+    </rabbit:listener-container>
 
 </beans>
