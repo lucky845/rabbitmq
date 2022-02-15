@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <!--读取属性文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!--配制连接工厂-->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               virtual-host="${rabbitmq.virtual-host}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               publisher-confirms="true"
+                               publisher-returns="true"/>
+
+    <!--创建rabbit admin : 底层创建一个类的Bean RabbitAdmin,用来管理交换机、队列及其绑定-->
+    <rabbit:admin connection-factory="connectionFactory"/>
+
+    <!--定义RabbitTemplate Bean-->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory"/>
+
+    <!--消息可靠性传递（生产者端）队列-->
+    <rabbit:queue id="queue-confirm" name="queue-confirm"/>
+
+    <!--消息可靠性传递（生产者）交换机-->
+    <rabbit:direct-exchange name="exchange-confirm">
+        <rabbit:bindings>
+            <rabbit:binding queue="queue-confirm" key="confirm"/>
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+
+    <!--TTL-->
+    <!--配置队列，指定该队列过期时间，而不是一个消息的过期时间-->
+    <rabbit:queue name="queue-ttl" id="queue-ttl" auto-declare="true">
+        <rabbit:queue-arguments>
+            <entry key="x-message-ttl" value="10000" value-type="java.lang.Integer"/>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+    <!--配置交换机-->
+    <rabbit:topic-exchange name="exchange-ttl" id="exchange-ttl" auto-declare="true">
+        <!--交换机绑定队列-->
+        <rabbit:bindings>
+            <rabbit:binding pattern="ttl.*" queue="queue-ttl"/>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+    <!--死信队列-->
+    <!--
+       死信队列：
+           1. 声明正常的队列(test-queue-dlx)和交换机(test-exchange-dlx)
+           2. 声明死信队列(queue-dlx)和死信交换机(exchange-dlx)
+           3. 正常队列绑定死信交换机
+               设置两个参数：
+                   * x-dead-letter-exchange：死信交换机名称
+                   * x-dead-letter-routing-key：发送给死信交换机的routing-key
+   -->
+
+    <!-- 1. 声明正常的队列(test-queue-dlx)和交换机(test-exchange-dlx) -->
+    <rabbit:queue name="test-queue-dlx" id="test-queue-dlx">
+        <!--3. 正常队列绑定死信交换机-->
+        <rabbit:queue-arguments>
+            <!--3.1 x-dead-latter-exchange：死信交换机名称 -->
+            <entry key="x-dead-letter-exchange" value="exchange-dlx"/>
+            <!--3.2 x-dead-letter-routing-key ：发送给死信交换机的 routing-key-->
+            <entry key="x-dead-letter-routing-key" value="dlx.hehe"/>
+            <!-- 4.1 x-max-ttl 设置队列的过期时间 ttl -->
+            <entry key="x-max-ttl" value="10000" value-type="java.lang.Integer"/>
+            <!-- 4.2 x-max-length 设置队列的长度限制 max-length -->
+            <entry key="x-max-length" value="10" value-type="java.lang.Integer"/>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+    <!-- 4. 正常交换机(通配交换机) -->
+    <rabbit:topic-exchange name="test-exchange-dlx">
+        <rabbit:bindings>
+            <rabbit:binding pattern="test.dlx.#" queue="test-queue-dlx"/>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    <!-- 2. 声明死信队列（queue-dlx）和死信交换机（exchange-dlx）-->
+    <rabbit:queue name="queue-dlx" id="queue-dlx"/>
+    <rabbit:topic-exchange name="exchange-dlx">
+        <rabbit:bindings>
+            <rabbit:binding pattern="dlx.#" queue="queue-dlx"/>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+    <!-- 使用TTL + 死信队列 实现延迟队列 -->
+    <!-- 1. 声明正常的队列 -->
+    <rabbit:queue name="test-queue-delay" id="test-queue-delay">
+        <rabbit:queue-arguments>
+            <!--3.1 x-dead-latter-exchange：死信交换机名称 -->
+            <entry key="x-dead-letter-exchange" value="exchange-delay"/>
+            <!--3.2 x-dead-letter-routing-key ：发送给死信交换机的 routing-key-->
+            <entry key="x-dead-letter-routing-key" value="delay.hehe"/>
+            <!-- 4.1 x-max-ttl 设置队列的过期时间 ttl -->
+            <entry key="x-max-ttl" value="10000" value-type="java.lang.Integer"/>
+            <!-- 4.2 x-max-length 设置队列的长度限制 max-length -->
+            <entry key="x-max-length" value="10" value-type="java.lang.Integer"/>
+        </rabbit:queue-arguments>
+    </rabbit:queue>
+    <!-- 4. 正常交换机(通配交换机) -->
+    <rabbit:topic-exchange name="test-exchange-delay">
+        <rabbit:bindings>
+            <rabbit:binding pattern="test.delay.#" queue="test-queue-delay"/>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+    <!-- 2. 声明死信队列（queue-delay）和 死信交换机（exchange-delay）-->
+    <rabbit:queue name="queue-delay" id="queue-delay"/>
+    <rabbit:topic-exchange name="exchange-delay">
+        <rabbit:bindings>
+            <rabbit:binding pattern="delay.#" queue="queue-delay"/>
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+
+</beans>

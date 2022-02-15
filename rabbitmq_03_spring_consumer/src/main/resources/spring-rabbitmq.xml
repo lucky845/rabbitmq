@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xmlns:conntext="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <!--读取属性文件-->
+    <context:property-placeholder location="classpath:rabbitmq.properties"/>
+
+    <!--配制连接工厂-->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               virtual-host="${rabbitmq.virtual-host}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}"
+                               publisher-confirms="true"
+                               publisher-returns="true"/>
+
+    <!--配制监听器-->
+    <conntext:component-scan base-package="com.atguigu.rabbitmq.listener"/>
+
+    <!--配制监听器容器-->
+    <!--
+        acknowledge="manual" : 手动确认
+         prefetch="3" : 消费端限流，每次取xx个
+    -->
+    <rabbit:listener-container connection-factory="connectionFactory" acknowledge="manual" prefetch="3">
+        <!--测试手动确认-->
+        <!--        <rabbit:listener ref="ackListener" queue-names="queue-confirm"/>-->
+        <!--测试自动确认-->
+        <!--        <rabbit:listener ref="ackListener2" queue-names="queue-confirm"/>-->
+        <!--测试消费端限流-->
+        <!--        <rabbit:listener ref="qosListener" queue-names="queue-confirm"/>-->
+        <!--测试死信队列消息拒收-->
+        <!--        <rabbit:listener ref="dlxListener" queue-names="test-queue-dlx"/>-->
+        <!--测试延迟队列-->
+        <rabbit:listener ref="delayListener" queue-names="test-queue-delay"/>
+    </rabbit:listener-container>
+
+
+</beans>
